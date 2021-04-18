@@ -6,8 +6,6 @@
 # Please note that it'll use about 1.2 GB disk space and about 15 minutes to
 # build this image, it depends on your hardware.
 
-# Use Ubuntu Trusty Tahr as base image as we're using on Travis CI
-# I also tested with Ubuntu 16.04, should be good with it!
 FROM ubuntu:16.04
 LABEL maintainer="Peter Dave Hello <hsu@peterdavehello.org>"
 LABEL name="nvm-dev-env"
@@ -43,6 +41,7 @@ RUN apt update         && \
         file                  \
         openssl               \
         libssl-dev            \
+        locales               \
         ca-certificates       \
         ssh                   \
         wget                  \
@@ -65,14 +64,11 @@ RUN apt update         && \
         bash-completion       && \
     apt-get clean
 
-# ShellCheck with Ubuntu 14.04 container workaround
-RUN wget https://storage.googleapis.com/shellcheck/shellcheck-v$SHELLCHECK_VERSION.linux.x86_64.tar.xz -O- | \
+RUN wget https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.linux.x86_64.tar.xz -O- | \
     tar xJvf - shellcheck-v$SHELLCHECK_VERSION/shellcheck          && \
     mv shellcheck-v$SHELLCHECK_VERSION/shellcheck /bin             && \
-    rmdir shellcheck-v$SHELLCHECK_VERSION                          && \
-    touch /tmp/libc.so.6                                           && \
-    echo "alias shellcheck='LD_LIBRARY_PATH=/tmp /bin/shellcheck'" >> /etc/bash.bashrc
-RUN LD_LIBRARY_PATH=/tmp shellcheck -V
+    rmdir shellcheck-v$SHELLCHECK_VERSION
+RUN shellcheck -V
 
 # Set locale
 RUN locale-gen en_US.UTF-8

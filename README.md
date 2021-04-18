@@ -1,4 +1,4 @@
-# Node Version Manager [![Build Status](https://travis-ci.org/nvm-sh/nvm.svg?branch=master)][3] [![nvm version](https://img.shields.io/badge/version-v0.35.3-yellow.svg)][4] [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/684/badge)](https://bestpractices.coreinfrastructure.org/projects/684)
+# Node Version Manager [![Build Status](https://travis-ci.org/nvm-sh/nvm.svg?branch=master)][3] [![nvm version](https://img.shields.io/badge/version-v0.38.0-yellow.svg)][4] [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/684/badge)](https://bestpractices.coreinfrastructure.org/projects/684)
 
 <!-- To update this table of contents, ensure you have run `npm install` then `npm run doctoc` -->
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -24,9 +24,14 @@
   - [io.js](#iojs)
   - [System Version of Node](#system-version-of-node)
   - [Listing Versions](#listing-versions)
+  - [Setting Custom Colors](#setting-custom-colors)
+    - [Persisting custom colors](#persisting-custom-colors)
     - [Suppressing colorized output](#suppressing-colorized-output)
+    - [Restoring PATH](#restoring-path)
+    - [Set default node version](#set-default-node-version)
+    - [Use a mirror of node binaries](#use-a-mirror-of-node-binaries)
   - [.nvmrc](#nvmrc)
-    - [`nvm cat`](#nvm-cat)
+      - [nvm cat](#nvm-cat)
   - [Deeper Shell Integration](#deeper-shell-integration)
     - [bash](#bash)
       - [Automatically call `nvm use`](#automatically-call-nvm-use)
@@ -50,7 +55,7 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## About
-nvm is a version manager for [node.js](https://nodejs.org/en/), designed to be installed per-user, and invoked per-shell. `nvm` works on any POSIX-compliant shell (sh, dash, ksh, zsh, bash), in particular on these platforms:  unix, macOS, and windows WSL.
+nvm is a version manager for [node.js](https://nodejs.org/en/), designed to be installed per-user, and invoked per-shell. `nvm` works on any POSIX-compliant shell (sh, dash, ksh, zsh, bash), in particular on these platforms: unix, macOS, and windows WSL.
 
 <a id="installation-and-update"></a>
 <a id="install-script"></a>
@@ -60,10 +65,10 @@ nvm is a version manager for [node.js](https://nodejs.org/en/), designed to be i
 
 To **install** or **update** nvm, you should run the [install script][2]. To do that, you may either download and run the script manually, or use the following cURL or Wget command:
 ```sh
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
 ```
 ```sh
-wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
 ```
 
 Running either of the above commands downloads a script and runs it. The script clones the nvm repository to `~/.nvm`, and attempts to add the source lines from the snippet below to the correct profile file (`~/.bash_profile`, `~/.zshrc`, `~/.profile`, or `~/.bashrc`).
@@ -88,6 +93,15 @@ Eg: `curl ... | NVM_DIR="path/to/nvm"`. Ensure that the `NVM_DIR` does not conta
 #### Troubleshooting on Linux
 
 On Linux, after running the install script, if you get `nvm: command not found` or see no feedback from your terminal after you type `command -v nvm`, simply close your current terminal, open a new terminal, and try verifying again.
+Alternatively, you can run run the following commands for the different shells on the command line:
+
+*bash*: `source ~/.bashrc`
+
+*zsh*: `source ~/.zshrc`
+
+*ksh*: `. ~/.profile`
+
+These should pick up the `nvm` command.
 
 #### Troubleshooting on macOS
 
@@ -97,9 +111,13 @@ If you get `nvm: command not found` after running the install script, one of the
 
   - Since macOS 10.15, the default shell is `zsh` and nvm will look for `.zshrc` to update, none is installed by default. Create one with `touch ~/.zshrc` and run the install script again.
 
-  - If you use bash, the previous default shell, run `touch ~/.bash_profile` to create the necessary profile file if it does not exist.
+  - If you use bash, the previous default shell, your system may not have a `.bash_profile` file where the command is set up. Create one with `touch ~/.bash_profile` and run the install script again. Then, run `source ~/.bash_profile` to pick up the `nvm` command.
+
+  - You have previously used `bash`, but you have `zsh` installed. You need to manually add [these lines](#manual-install) to `~/.zshrc` and run `. ~/.zshrc`.
 
   - You might need to restart your terminal instance or run `. ~/.nvm/nvm.sh`. Restarting your terminal/opening a new tab/window, or running the source command will load the command and the new configuration.
+
+  - If the above didn't help, you might need to restart your terminal instance. Try opening a new tab/window in your terminal and retry.
 
 If the above doesn't fix the problem, you may try the following:
 
@@ -116,7 +134,7 @@ You can use a task:
 ```yaml
 - name: nvm
   shell: >
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
   args:
     creates: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
 ```
@@ -135,10 +153,11 @@ which should output `nvm` if the installation was successful. Please note that `
 
 If you're running a system without prepackaged binary available, which means you're going to install nodejs or io.js from its source code, you need to make sure your system has a C++ compiler. For OS X, Xcode will work, for Debian/Ubuntu based GNU/Linux, the `build-essential` and `libssl-dev` packages work.
 
-**Note:** `nvm` does not support Windows (see [#284](https://github.com/nvm-sh/nvm/issues/284)), but may work in WSL (Windows Subsystem for Linux) depending on the version of WSL. For Windows, two alternatives exist, which are neither supported nor developed by us:
+**Note:** `nvm` also support Windows in some cases. It should work through WSL (Windows Subsystem for Linux) depending on the version of WSL. It should also work with [GitBash](https://gitforwindows.org/) (MSYS) or [Cygwin](https://cygwin.com). Otherwise, for Windows, afew alternatives exist, which are neither supported nor developed by us:
 
   - [nvm-windows](https://github.com/coreybutler/nvm-windows)
   - [nodist](https://github.com/marcelklehr/nodist)
+  - [nvs](https://github.com/jasongin/nvs)
 
 **Note:** `nvm` does not support [Fish] either (see [#303](https://github.com/nvm-sh/nvm/issues/303)). Alternatives exist, which are neither supported nor developed by us:
 
@@ -175,8 +194,8 @@ If you have `git` installed (requires git v1.7.10+):
 
 1. clone this repo in the root of your user profile
   - `cd ~/` from anywhere then `git clone https://github.com/nvm-sh/nvm.git .nvm`
-1. `cd ~/.nvm` and check out the latest version with `git checkout v0.35.3`
-1. activate `nvm` by sourcing it from your shell: `. nvm.sh`
+1. `cd ~/.nvm` and check out the latest version with `git checkout v0.38.0`
+1. activate `nvm` by sourcing it from your shell: `. ./nvm.sh`
 
 Now add these lines to your `~/.bashrc`, `~/.profile`, or `~/.zshrc` file to have it automatically sourced upon login:
 (you may have to add to more than one of the above files)
@@ -301,7 +320,7 @@ Any time your local copy of `nvm` connects to https://nodejs.org, it will re-cre
 To get the latest LTS version of node and migrate your existing installed packages, use
 
 ```sh
-nvm install --lts --reinstall-packages-from=current
+nvm install 'lts/*' --reinstall-packages-from=current
 ```
 
 ### Migrating Global Packages While Installing
@@ -326,7 +345,7 @@ Note that reinstalling packages _explicitly does not update the npm version_ —
 To update npm at the same time add the `--latest-npm` flag, like this:
 
 ```sh
-nvm install lts/* --reinstall-packages-from=default --latest-npm
+nvm install 'lts/*' --reinstall-packages-from=default --latest-npm
 ```
 
 or, you can at any time run the following command to get the latest supported npm version on the current node version:
@@ -388,27 +407,66 @@ If you want to see what versions are available to install:
 nvm ls-remote
 ```
 
+### Setting Custom Colors
+
+You can set five colors that will be used to display version and alias information. These colors replace the default colors.
+  Initial colors are: g b y r e
+
+  Color codes:
+
+    r/R = red / bold red
+
+    g/G = green / bold green
+
+    b/B = blue / bold blue
+
+    c/C = cyan / bold cyan
+
+    m/M = magenta / bold magenta
+
+    y/Y = yellow / bold yellow
+
+    k/K = black / bold black
+
+    e/W = light grey / white
+
+```sh
+nvm set-colors rgBcm
+```
+
+#### Persisting custom colors
+
+If you want the custom colors to persist after terminating the shell, export the NVM_COLORS variable in your shell profile. For example, if you want to use cyan, magenta, green, bold red and bold yellow, add the following line:
+
+```sh
+export NVM_COLORS='cmgRY'
+```
+
 #### Suppressing colorized output
 
-`nvm ls`, `nvm ls-remote` and `nvm alias` usually produce colorized output. You can disable colors with the `--no-colors` option (or by setting the environment variable `TERM=dumb`):
+`nvm help (or -h or --help)`, `nvm ls`, `nvm ls-remote` and `nvm alias` usually produce colorized output. You can disable colors with the `--no-colors` option (or by setting the environment variable `TERM=dumb`):
 
 ```sh
 nvm ls --no-colors
+nvm help --no-colors
 TERM=dumb nvm ls
 ```
 
+#### Restoring PATH
 To restore your PATH, you can deactivate it:
 
 ```sh
 nvm deactivate
 ```
 
+#### Set default node version
 To set a default Node version to be used in any new shell, use the alias 'default':
 
 ```sh
 nvm alias default node
 ```
 
+#### Use a mirror of node binaries
 To use a mirror of the node binaries, set `$NVM_NODEJS_ORG_MIRROR`:
 
 ```sh
@@ -493,17 +551,9 @@ If you prefer a lighter-weight solution, the recipes below have been contributed
 Put the following at the end of your `$HOME/.bashrc`:
 
 ```bash
-find-up () {
-    path=$(pwd)
-    while [[ "$path" != "" && ! -e "$path/$1" ]]; do
-        path=${path%/*}
-    done
-    echo "$path"
-}
-
-cdnvm(){
+cdnvm() {
     cd "$@";
-    nvm_path=$(find-up .nvmrc | tr -d '\n')
+    nvm_path=$(nvm_find_up .nvmrc | tr -d '\n')
 
     # If there are no .nvmrc file, use the default nvm version
     if [[ ! $nvm_path = *[^[:space:]]* ]]; then
@@ -544,6 +594,7 @@ cdnvm(){
     fi
 }
 alias cd='cdnvm'
+cd $PWD
 ```
 
 This alias would search 'up' from your current directory in order to detect a `.nvmrc` file. If it finds it, it will switch to that version; if not, it will use the default version.
@@ -684,36 +735,36 @@ nvm:
 > $ nvm <kbd>Tab</kbd>
 
 ```
-alias               deactivate          install             ls                  run                 unload                install-latest-npm
-clear-cache         exec                list                ls-remote           unalias             use                   debug
-current             help                list-remote         reinstall-packages  uninstall           version               cat
+alias               deactivate          install             list-remote         reinstall-packages  uninstall           version
+cache               exec                install-latest-npm  ls                  run                 unload              version-remote
+current             help                list                ls-remote           unalias             use                 which
 ```
 
 nvm alias:
 > $ nvm alias <kbd>Tab</kbd>
 
 ```
-default
+default      iojs         lts/*        lts/argon    lts/boron    lts/carbon   lts/dubnium  lts/erbium   node         stable       unstable
 ```
 
 > $ nvm alias my_alias <kbd>Tab</kbd>
 
 ```
-v0.6.21        v0.8.26       v0.10.28
+v10.22.0       v12.18.3      v14.8.0
 ```
 
 nvm use:
 > $ nvm use <kbd>Tab</kbd>
 
 ```
-my_alias        default        v0.6.21        v0.8.26       v0.10.28
+my_alias        default        v10.22.0       v12.18.3      v14.8.0
 ```
 
 nvm uninstall:
 > $ nvm uninstall <kbd>Tab</kbd>
 
 ```
-my_alias        default        v0.6.21        v0.8.26       v0.10.28
+my_alias        default        v10.22.0       v12.18.3      v14.8.0
 ```
 
 nvm cat:
@@ -759,7 +810,7 @@ If installing nvm on Alpine Linux *is* still what you want or need to do, you sh
 
 ```sh
 apk add -U curl bash ca-certificates openssl ncurses coreutils python2 make gcc g++ libgcc linux-headers grep util-linux binutils findutils
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
 ```
 
 The Node project has some desire but no concrete plans (due to the overheads of building, testing and support) to offer Alpine-compatible binaries.
@@ -856,8 +907,70 @@ You have to make sure that the user directory name in `$HOME` and the user direc
 To change the user directory and/or account name follow the instructions [here](https://support.apple.com/en-us/HT201548)
 
 [1]: https://github.com/nvm-sh/nvm.git
-[2]: https://github.com/nvm-sh/nvm/blob/v0.35.3/install.sh
+[2]: https://github.com/nvm-sh/nvm/blob/v0.38.0/install.sh
 [3]: https://travis-ci.org/nvm-sh/nvm
-[4]: https://github.com/nvm-sh/nvm/releases/tag/v0.35.3
+[4]: https://github.com/nvm-sh/nvm/releases/tag/v0.38.0
 [Urchin]: https://github.com/scraperwiki/urchin
 [Fish]: http://fishshell.com
+
+**Homebrew makes zsh directories unsecure**
+
+```shell
+zsh compinit: insecure directories, run compaudit for list.
+Ignore insecure directories and continue [y] or abort compinit [n]? y
+```
+
+Homebrew causes insecure directories like `/usr/local/share/zsh/site-functions` and `/usr/local/share/zsh`. This is **not** an `nvm` problem - it is a homebrew problem. Refer [here](https://github.com/zsh-users/zsh-completions/issues/680) for some solutions related to the issue.
+
+**Macs with M1 chip**
+
+_January 2021:_ there are no pre-compiled NodeJS binaries for versions prior to 15.x for Apple's new M1 chip (arm64 architecture).
+
+Some issues you may encounter:
+
+- using `nvm` to install, say, `v14.15.4`:
+  - the C code compiles successfully
+  - but crashes with an out of memory error when used
+  - increasing the memory available to node still produces the out of memory errors:
+    ```sh
+    $ NODE_OPTIONS="--max-old-space-size=4096" ./node_modules/.bin/your_node_package
+    ```
+- when using `nvm` to install some versions, the compilation fails
+
+One solution to this issue is to change the architecture of your shell from arm64 to x86.
+
+Let's assume that:
+- you already have versions `12.20.1` and `14.15.4` installed using `nvm`
+- the current version in use is `14.15.4`
+- you are using the `zsh` shell
+- you have Rosetta 2 installed (macOS prompts you to install Rosetta 2 the first time you open a Intel-only non-command-line application, or you may install Rosetta 2 from the command line with `softwareupdate --install-rosetta`)
+
+```sh
+# Check what version you're running:
+$ node --version
+v14.15.4
+# Check architecture of the `node` binary:
+$ node -p process.arch
+arm64
+# This confirms that the arch is for the M1 chip, which is causing the problems.
+# So we need to uninstall it.
+# We can't uninstall the version we are currently using, so switch to another version:
+$ nvm install v12.20.1
+# Now uninstall the version we want to replace:
+$ nvm uninstall v14.15.4
+# Launch a new zsh process under the 64-bit X86 architecture:
+$ arch -x86_64 zsh
+# Install node using nvm. This should download the precompiled x64 binary:
+$ nvm install v14.15.4
+# Now check that the architecture is correct:
+$ node -p process.arch
+x64
+# It is now safe to return to the arm64 zsh process:
+$ exit
+# We're back to a native shell:
+$ arch
+arm64
+# And the new version is now available to use:
+$ nvm use v14.15.4
+Now using node v14.15.4 (npm v6.14.10)
+```
