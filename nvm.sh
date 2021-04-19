@@ -3966,7 +3966,7 @@ nvm() {
         # so, unalias it.
         nvm unalias "${ALIAS}"
         return $?
-      elif grep -q "#" <<< "${ALIAS}"; then
+      elif echo $ALIAS | grep -q "#"; then
         nvm_err "Aliases may not have a # inside it"
         exit 1
       elif [ "${TARGET}" != '--' ]; then
